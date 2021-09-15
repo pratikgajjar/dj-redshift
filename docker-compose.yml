@@ -1,0 +1,51 @@
+version: '3'
+services:
+  postgres:
+    image: postgres:13
+    hostname: postgres
+    ports:
+      - "15432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=mysecretpassword
+      - POSTGRES_DB=app_name
+  redis:
+    image: redis
+    hostname: redis
+  web:
+    build: ./
+    hostname: web
+    env_file:
+      - .env
+# Un comment on local to do live change
+#    volumes:
+#      - ./:/code
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - redis
+  celery:
+    build: ./
+    command: celery worker --app=backend.celery_app --workdir=/code -l info
+    env_file:
+      - .env
+#    volumes:
+#      - .:/code
+    depends_on:
+      - postgres
+      - redis
+  celery-beat:
+    build: ./
+    command: celery beat --app=backend.celery_app --workdir=/code -l info
+    env_file:
+      - .env
+#    volumes:
+#      - .:/code
+    depends_on:
+      - postgres
+      - redis
+volumes:
+  pgdata:
